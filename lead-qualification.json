@@ -1,0 +1,1003 @@
+{
+  "name": "Leads Form to Sheet",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Contact / Leads Form",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email",
+              "fieldType": "email",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Company"
+            },
+            {
+              "fieldLabel": "Job Role"
+            },
+            {
+              "fieldLabel": "What are you looking for?",
+              "fieldType": "textarea"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a07a4ea4-57cb-4981-b3f3-306c7546083a",
+      "name": "On form submission",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "511811c4-d4ba-435e-b18c-5d8cc35afd70"
+    },
+    {
+      "parameters": {
+        "text": "=Company: {{ $json.Company }}\nJob Role: {{ $json[\"Job Role\"] }}\nWhat they are looking for: {{ $json[\"What are you looking for?\"] }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "segment",
+              "description": "Company segment, exactly one of: \"SMB\", \"Enterprise\" or \"Unknown\". Use \"Unknown\" for students, individuals, or when company info is missing or unclear.",
+              "required": true
+            },
+            {
+              "name": "intent",
+              "description": "Buying intent, exactly one of: \"Browsing\", \"Evaluating\", \"Ready to buy\" or \"Invalid\". Use \"Invalid\" for spam, gibberish, or clearly fake submissions.",
+              "required": true
+            },
+            {
+              "name": "score",
+              "type": "number",
+              "description": "Lead score from 1 to 10, where 10 means ready to buy now.",
+              "required": true
+            }
+          ]
+        },
+        "options": {
+          "systemPromptTemplate": "You are a B2B lead qualification assistant. Classify the lead and extract the requested fields as JSON. Use only the allowed values for segment and intent. Mark intent as \"Invalid\" when the submission is spam, gibberish, or clearly fake; use segment \"Unknown\" for students, individuals, or missing company info. Score using this rubric: 9-10 = has budget and a timeline within 3 months; 7-8 = actively comparing tools, no confirmed budget; 4-6 = interested but no timeline; 1-3 = just curious, student, or no business need."
+        }
+      },
+      "id": "7bc4a775-8fef-45ba-9ab4-6b65f5317a01",
+      "name": "Extract Lead Info",
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        48,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "128698d9-580e-48bf-83eb-5f708807eb54",
+      "name": "LM Chat Open Ai",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        128,
+        384
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "Gateway credits",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "intent-invalid",
+              "leftValue": "={{ $json.output.intent }}",
+              "rightValue": "Invalid",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b7db21b3-7a44-4908-85f1-757e5c63c89b",
+      "name": "Is Invalid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        400,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1goFMbZ4nX1Y94RavVpmqiCYc2lYue30RElqopW4_TFA",
+          "cachedResultName": "Leads"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1207285821",
+          "cachedResultName": "Sheet2"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now.toISO() }}",
+            "Name": "={{ $('On form submission').item.json.Name }}",
+            "Email": "={{ $('On form submission').item.json.Email }}",
+            "Company": "={{ $('On form submission').item.json.Company }}",
+            "Job Role": "={{ $('On form submission').item.json['Job Role'] }}",
+            "What are you looking for?": "={{ $('On form submission').item.json['What are you looking for?'] }}",
+            "Segment": "={{ $json.output.segment }}",
+            "Intent": "={{ $json.output.intent }}",
+            "Score": "={{ $json.output.score }}"
+          },
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Job Role",
+              "displayName": "Job Role",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "What are you looking for?",
+              "displayName": "What are you looking for?",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Segment",
+              "displayName": "Segment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Intent",
+              "displayName": "Intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Score",
+              "displayName": "Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "27201369-25b4-45fe-8003-5bfde1917abd",
+      "name": "Append to Rejected Tab",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        624,
+        -16
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "cpo9b1zotAMBHMjm",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1goFMbZ4nX1Y94RavVpmqiCYc2lYue30RElqopW4_TFA",
+          "cachedResultName": "Leads"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultName": "Sheet1"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now.toISO() }}",
+            "Name": "={{ $('On form submission').item.json.Name }}",
+            "Email": "={{ $('On form submission').item.json.Email }}",
+            "Company": "={{ $('On form submission').item.json.Company }}",
+            "Job Role": "={{ $('On form submission').item.json['Job Role'] }}",
+            "What are you looking for?": "={{ $('On form submission').item.json['What are you looking for?'] }}",
+            "Segment": "={{ $json.output.segment }}",
+            "Intent": "={{ $json.output.intent }}",
+            "Score": "={{ $json.output.score }}"
+          },
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Job Role",
+              "displayName": "Job Role",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "What are you looking for?",
+              "displayName": "What are you looking for?",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Segment",
+              "displayName": "Segment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Intent",
+              "displayName": "Intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Score",
+              "displayName": "Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d8f63dbf-1fb2-4866-9745-889c2495b362",
+      "name": "Append to Leads Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        224,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "cpo9b1zotAMBHMjm",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "intent-ready",
+              "leftValue": "={{ $('Extract Lead Info').item.json.output.intent }}",
+              "rightValue": "Ready to buy",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "score-high",
+              "leftValue": "={{ $('Extract Lead Info').item.json.output.score }}",
+              "rightValue": 9,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "08aee8bf-2315-432e-8df1-0870204cd30f",
+      "name": "Is Hot Lead?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        848,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Write a short, friendly first email to this hot lead, personalised to their segment ({{ $('Extract Lead Info').item.json.output.segment }}) and what they said they're looking for. They are ready to buy, so reply promptly, acknowledge their timeline, and propose one clear next step (e.g. a call this week). Under 120 words, plain language, no hype. Return only the email body, no subject line, no placeholders.\n\nLead name: {{ $('On form submission').item.json.Name }}\nCompany: {{ $('On form submission').item.json.Company }}\nJob role: {{ $('On form submission').item.json['Job Role'] }}\nWhat they are looking for: {{ $('On form submission').item.json['What are you looking for?'] }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You write concise, friendly B2B follow-up emails. Plain language, no hype, no buzzwords, under 120 words, exactly one clear next step (e.g. a short call). Sign off as Alexandra."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "id": "59eabf0a-bc09-4ce6-a449-e2b61fe92ea7",
+      "name": "Draft Hot Lead Reply",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1072,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "58356197-5828-4bdb-9edc-d608bffe256a",
+      "name": "LM Chat Hot Draft",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1152,
+        368
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "Gateway credits",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "allamalexandra@gmail.com",
+        "subject": "=Hot lead: {{ $('On form submission').item.json.Name }} at {{ $('On form submission').item.json.Company }} (score {{ $('Extract Lead Info').item.json.output.score }})",
+        "emailType": "text",
+        "message": "=New hot lead from the website form:\n\nName: {{ $('On form submission').item.json.Name }}\nEmail: {{ $('On form submission').item.json.Email }}\nCompany: {{ $('On form submission').item.json.Company }}\nJob Role: {{ $('On form submission').item.json['Job Role'] }}\nLooking for: {{ $('On form submission').item.json['What are you looking for?'] }}\nSegment: {{ $('Extract Lead Info').item.json.output.segment }}\nIntent: {{ $('Extract Lead Info').item.json.output.intent }}\nScore: {{ $('Extract Lead Info').item.json.output.score }}/10\n\n--- Suggested reply (ready to send) ---\n{{ $json.text }}\n--- End of suggested reply ---",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "b7382949-9482-47d8-a975-63ff35ffa808",
+      "name": "Send Hot Lead Alert",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1072,
+        176
+      ],
+      "webhookId": "33cf1fc7-cfd2-40c8-a557-e01c9b26e14c",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "oiJa1j7ZINF8I6qV",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1goFMbZ4nX1Y94RavVpmqiCYc2lYue30RElqopW4_TFA",
+          "cachedResultName": "Leads"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultName": "Sheet1"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email": "={{ $('On form submission').item.json.Email }}",
+            "Approval": "Hot lead - alerted"
+          },
+          "matchingColumns": [
+            "Email"
+          ],
+          "schema": [
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Approval",
+              "displayName": "Approval",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4e905aa1-bd22-4e80-a5a9-e5e8734144a2",
+      "name": "Log Hot Lead in Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1344,
+        448
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "cpo9b1zotAMBHMjm",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Write a short, friendly first email to this lead, personalised to their segment ({{ $('Extract Lead Info').item.json.output.segment }}) and what they said they're looking for. Under 120 words, plain language, no hype, with one clear next step. Return only the email body, no subject line, no placeholders.\n\nLead name: {{ $('On form submission').item.json.Name }}\nCompany: {{ $('On form submission').item.json.Company }}\nJob role: {{ $('On form submission').item.json['Job Role'] }}\nWhat they are looking for: {{ $('On form submission').item.json['What are you looking for?'] }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You write concise, friendly B2B follow-up emails. Plain language, no hype, no buzzwords, under 120 words, exactly one clear next step (e.g. a short call). Sign off as Alexandra."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "id": "47eb81d7-6af6-45ca-9636-ea850c1024ed",
+      "name": "Draft Follow-Up Email",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1168,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "ff46edfc-5c6d-4fa9-bcae-f5bcf10f0d18",
+      "name": "LM Chat Draft",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1232,
+        256
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "Gateway credits",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "allamalexandra@gmail.com",
+        "subject": "=Approve follow-up email to {{ $('On form submission').item.json.Name }} ({{ $('On form submission').item.json.Email }})",
+        "message": "=Please review this draft follow-up email before it goes to the lead.\n\nLead: {{ $('On form submission').item.json.Name }} <{{ $('On form submission').item.json.Email }}>\nCompany: {{ $('On form submission').item.json.Company }}\nSegment: {{ $('Extract Lead Info').item.json.output.segment }}\nIntent: {{ $('Extract Lead Info').item.json.output.intent }}\nScore: {{ $('Extract Lead Info').item.json.output.score }}/10\n\n--- Draft ---\n{{ $json.text }}\n--- End of draft ---\n\nApprove to send it to the lead, Reject to discard it.",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double",
+            "disapproveLabel": "Reject"
+          }
+        },
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "bd709c59-065c-4f9a-993a-a350dd0e51e0",
+      "name": "Approval Request",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1600,
+        32
+      ],
+      "webhookId": "7422f197-2b5c-4d3c-bc67-324adb6467ad",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "oiJa1j7ZINF8I6qV",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "approved-true",
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "51afb8a6-fca7-475f-b281-7981a63e595d",
+      "name": "Was Approved?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1824,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('On form submission').item.json.Email }}",
+        "subject": "Following up",
+        "emailType": "text",
+        "message": "={{ $('Draft Follow-Up Email').item.json.text }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "2a62f7dc-5789-4799-bc63-f953a1e15b82",
+      "name": "Send Email to Lead",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2048,
+        -48
+      ],
+      "webhookId": "6f21f6ed-5700-48dc-9b8b-2f680e0d97c0",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "oiJa1j7ZINF8I6qV",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1goFMbZ4nX1Y94RavVpmqiCYc2lYue30RElqopW4_TFA",
+          "cachedResultName": "Leads"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultName": "Sheet1"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email": "={{ $('On form submission').item.json.Email }}",
+            "Approval": "={{ $('Was Approved?').item.json.data.approved ? 'Approved' : 'Rejected' }}"
+          },
+          "matchingColumns": [
+            "Email"
+          ],
+          "schema": [
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Approval",
+              "displayName": "Approval",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "93733056-6693-44ec-bd7c-9089052b9a94",
+      "name": "Log Approval in Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2272,
+        32
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "cpo9b1zotAMBHMjm",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Extract Lead Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Lead Info": {
+      "main": [
+        [
+          {
+            "node": "Is Invalid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LM Chat Open Ai": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Extract Lead Info",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Invalid?": {
+      "main": [
+        [
+          {
+            "node": "Append to Rejected Tab",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Append to Leads Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append to Leads Sheet": {
+      "main": [
+        [
+          {
+            "node": "Is Hot Lead?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Hot Lead?": {
+      "main": [
+        [
+          {
+            "node": "Draft Hot Lead Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Draft Follow-Up Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draft Hot Lead Reply": {
+      "main": [
+        [
+          {
+            "node": "Send Hot Lead Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LM Chat Hot Draft": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Draft Hot Lead Reply",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Hot Lead Alert": {
+      "main": [
+        [
+          {
+            "node": "Log Hot Lead in Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draft Follow-Up Email": {
+      "main": [
+        [
+          {
+            "node": "Approval Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LM Chat Draft": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Draft Follow-Up Email",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approval Request": {
+      "main": [
+        [
+          {
+            "node": "Was Approved?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Was Approved?": {
+      "main": [
+        [
+          {
+            "node": "Send Email to Lead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Approval in Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email to Lead": {
+      "main": [
+        [
+          {
+            "node": "Log Approval in Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "f3f7ca45-67c4-4cda-ac42-a3422f5fa467",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b83f589a13025490785260050da238b148d4e5f8c4deba19fc8e17b3ee81e373"
+  },
+  "nodeGroups": [
+    {
+      "id": "0c084600-3e18-40ef-b068-fdc3fda93a26",
+      "name": "Qualify new leads",
+      "nodeIds": [
+        "7bc4a775-8fef-45ba-9ab4-6b65f5317a01",
+        "128698d9-580e-48bf-83eb-5f708807eb54",
+        "b7db21b3-7a44-4908-85f1-757e5c63c89b",
+        "27201369-25b4-45fe-8003-5bfde1917abd",
+        "d8f63dbf-1fb2-4866-9745-889c2495b362"
+      ],
+      "description": "Scores each form submission with AI and files it in the main Leads sheet or the Rejected tab"
+    },
+    {
+      "id": "9936061f-1f30-4146-a58a-331334747ea4",
+      "name": "Alert on hot leads",
+      "nodeIds": [
+        "59eabf0a-bc09-4ce6-a449-e2b61fe92ea7",
+        "58356197-5828-4bdb-9edc-d608bffe256a",
+        "b7382949-9482-47d8-a975-63ff35ffa808",
+        "4e905aa1-bd22-4e80-a5a9-e5e8734144a2"
+      ],
+      "description": "Emails Alexandra with the lead details plus a ready-to-send reply when a lead is ready to buy or scores 9+, and marks the row as alerted"
+    },
+    {
+      "id": "0110ece1-6381-4d24-a3c9-5a1fa0bbf678",
+      "name": "Approve and send follow-up",
+      "nodeIds": [
+        "47eb81d7-6af6-45ca-9636-ea850c1024ed",
+        "ff46edfc-5c6d-4fa9-bcae-f5bcf10f0d18",
+        "bd709c59-065c-4f9a-993a-a350dd0e51e0",
+        "51afb8a6-fca7-475f-b281-7981a63e595d",
+        "2a62f7dc-5789-4799-bc63-f953a1e15b82",
+        "93733056-6693-44ec-bd7c-9089052b9a94"
+      ],
+      "description": "Drafts a follow-up email for quieter leads, sends it to Alexandra for approval, then emails the lead and logs the outcome"
+    }
+  ],
+  "id": "gfLhzFIqwpaDYMuI",
+  "tags": []
+}

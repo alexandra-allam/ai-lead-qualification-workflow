@@ -1,0 +1,189 @@
+{
+  "name": "Weekly Leads Report",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "id": "5eca3a4e-9c1b-46b6-8ae5-b4caf1f9fea6",
+      "name": "Every Monday 8am",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1goFMbZ4nX1Y94RavVpmqiCYc2lYue30RElqopW4_TFA",
+          "cachedResultName": "Leads"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultName": "Sheet1"
+        },
+        "options": {}
+      },
+      "id": "c1890a51-36ec-45e5-b808-916dc5a2ad09",
+      "name": "Read Leads Tab",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "cpo9b1zotAMBHMjm",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1goFMbZ4nX1Y94RavVpmqiCYc2lYue30RElqopW4_TFA",
+          "cachedResultName": "Leads"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1207285821",
+          "cachedResultName": "Sheet2"
+        },
+        "options": {}
+      },
+      "id": "19ddd5c4-4954-48fa-9119-b0794f95775c",
+      "name": "Read Rejected Tab",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        192
+      ],
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "cpo9b1zotAMBHMjm",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const leads = $('Read Leads Tab').all().map(i => i.json);\nconst rejected = $('Read Rejected Tab').all().map(i => i.json);\n\nconst now = new Date();\nconst weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);\n\nconst inWindow = (row) => {\n  const t = row.Timestamp || row.timestamp;\n  if (!t) return false;\n  const d = new Date(t);\n  return !isNaN(d.getTime()) && d >= weekAgo && d <= now;\n};\n\nconst recentLeads = leads.filter(inWindow);\nconst recentRejected = rejected.filter(inWindow);\n\nconst validLeads = recentLeads.length;\nconst totalRejected = recentRejected.length;\n\nconst breakdown = (rows, key) => {\n  const counts = {};\n  for (const r of rows) {\n    const v = (r[key] ?? '').toString().trim() || 'Unknown';\n    counts[v] = (counts[v] || 0) + 1;\n  }\n  const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);\n  return entries.length ? entries.map(([k, n]) => '  - ' + k + ': ' + n).join('\\n') : '  - none';\n};\n\nconst scores = recentLeads.map(r => parseFloat(r.Score)).filter(n => !isNaN(n));\nconst avgScore = scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : 'n/a';\n\nconst approvalOf = (r) => (r.Approval ?? '').toString().trim();\nconst hotLeads = recentLeads.filter(r => approvalOf(r) === 'Hot lead - alerted').length;\nconst approved = recentLeads.filter(r => approvalOf(r) === 'Approved').length;\nconst notApproved = recentLeads.filter(r => approvalOf(r) === 'Rejected').length;\n\nconst fmt = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });\nconst range = fmt(weekAgo) + ' - ' + fmt(now);\n\nconst report = [\n  'Weekly leads report: ' + range,\n  '',\n  'Valid new leads: ' + validLeads,\n  'Rejected as invalid: ' + totalRejected,\n  'Hot leads alerted: ' + hotLeads,\n  'Follow-up drafts approved: ' + approved,\n  'Follow-up drafts rejected: ' + notApproved,\n  'Average score: ' + avgScore,\n  '',\n  'Breakdown by segment (valid leads only):',\n  breakdown(recentLeads, 'Segment'),\n  '',\n  'Breakdown by intent (valid leads only):',\n  breakdown(recentLeads, 'Intent'),\n].join('\\n');\n\nreturn [{ json: { report, range } }];"
+      },
+      "id": "4decf936-19db-4b1a-a663-6c3ccae1bbc0",
+      "name": "Build Weekly Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "allamalexandra@gmail.com",
+        "subject": "=Weekly leads report: {{ $('Build Weekly Report').item.json.range }}",
+        "emailType": "text",
+        "message": "={{ $('Build Weekly Report').item.json.report }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "1493be78-7e39-4a16-a875-61af2a678873",
+      "name": "Email Weekly Report",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        96
+      ],
+      "webhookId": "45d91fa6-dc0f-42b3-91be-975a78b8a3be",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "oiJa1j7ZINF8I6qV",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Every Monday 8am": {
+      "main": [
+        [
+          {
+            "node": "Read Leads Tab",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Leads Tab": {
+      "main": [
+        [
+          {
+            "node": "Read Rejected Tab",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Rejected Tab": {
+      "main": [
+        [
+          {
+            "node": "Build Weekly Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Weekly Report": {
+      "main": [
+        [
+          {
+            "node": "Email Weekly Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "f43ccde6-de83-4b3d-9fd0-51caf95bb0d6",
+  "meta": {
+    "instanceId": "b83f589a13025490785260050da238b148d4e5f8c4deba19fc8e17b3ee81e373"
+  },
+  "nodeGroups": [],
+  "id": "Kh9zYOWX2mJ1KhgW",
+  "tags": []
+}

@@ -1,0 +1,38 @@
+[
+  {
+    "submittedAt": "2026-10-01T10:30:00.000Z",
+    "formMode": "instanceAi",
+    "Name": "Tom Holland",
+    "Email": "tom@example.com",
+    "Company": "",
+    "Job Role": "Student",
+    "What are you looking for?": "Just curious how automation works"
+  },
+  {
+    "submittedAt": "2026-10-01T10:31:00.000Z",
+    "formMode": "instanceAi",
+    "Name": "Priya Anjali",
+    "Email": "priya@example.com",
+    "Company": "HSBC",
+    "Job Role": "Head of Marketing Ops",
+    "What are you looking for?": "We need to replace our email tool this quarter, budget approved"
+  },
+  {
+    "submittedAt": "2026-10-01T10:32:00.000Z",
+    "formMode": "instanceAi",
+    "Name": "Leo Martin",
+    "Email": "leo@example.com",
+    "Company": "Leo's Bakery",
+    "Job Role": "Owner",
+    "What are you looking for?": "Maybe something to handle online orders someday"
+  },
+  {
+    "submittedAt": "2026-10-01T10:33:00.000Z",
+    "formMode": "instanceAi",
+    "Name": "xx",
+    "Email": "asdf@asdf.com",
+    "Company": "asdf",
+    "Job Role": "asdf",
+    "What are you looking for?": "asdf"
+  }
+]
