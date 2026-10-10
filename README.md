@@ -78,6 +78,6 @@ I used n8n's built-in AI assistant to generate the nodes. I designed the flow an
 
 ## About me
 
-Alexandra Allam, London. MSc Marketing (Concordia University, John Molson School of Business) and a background in workflow analysis and API integration. Looking for roles in marketing operations and MarTech.
+Alexandra Allam, London. MSc Marketing from Concordia University’s John Molson School of Business (2026), with a thesis on how advertising appeals shape consumer responses to wearable technology. First Class BSc in IT Management for Business from UWE Bristol. Background in workflow analysis and API integration. Looking for roles in marketing operations and MarTech.
 
 Portfolio: https://alexandra-allam.github.io · LinkedIn: https://www.linkedin.com/in/alexandra-allam-b54370171
